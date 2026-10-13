@@ -14,7 +14,7 @@
 # MAGIC    candidate); nominated observations are clustered by label propagation in Spark SQL.
 # MAGIC 3. **GenAI:** a sourced object dossier with `ai_query`, with every citation checked against the retrieved reports.
 # MAGIC 4. **Presentation:** a review queue with analyst write-back, views for the AI/BI dashboard, and the Genie space
-# MAGIC    (created or updated from `demo/genie-examples.md`).
+# MAGIC    (created or updated from `demo/genie-space.md`).
 # MAGIC
 # MAGIC **Running it.** Top to bottom is safe to repeat: section 1 resets the landing files and bronze tables, everything else is
 # MAGIC `CREATE OR REPLACE`. To run **one stage**, run the setup cells, then that stage's cell; it reads its inputs from the
@@ -335,7 +335,7 @@ display(spark.table(f"{cfg.s}.dash_object_summary"))
 # COMMAND ----------
 
 # MAGIC %md ## 15. Genie space (create or update)
-# MAGIC Builds the space from `demo/genie-examples.md` and creates it, or updates the space with the same title, keeping
+# MAGIC Builds the space from `demo/genie-space.md` and creates it, or updates the space with the same title, keeping
 # MAGIC settings made in the UI such as hidden columns. If this cell fails, create the space by hand from the same file.
 
 # COMMAND ----------

@@ -713,7 +713,7 @@ with check(
 if genie_warehouse:
     with check(
         "Genie space create, export and update via REST API",
-        "Create the space by hand from demo/genie-examples.md",
+        "Create the space by hand from demo/genie-space.md",
     ):
         spark.sql(f"""
           CREATE OR REPLACE TABLE {S}.t_genie AS
@@ -782,7 +782,7 @@ else:
     skip(
         "Genie space create, export and update via REST API",
         "no SQL warehouse",
-        "Create the space by hand from demo/genie-examples.md",
+        "Create the space by hand from demo/genie-space.md",
     )
 
 if genie_space_id:

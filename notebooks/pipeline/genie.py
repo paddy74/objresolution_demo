@@ -1,4 +1,4 @@
-"""Create or update the Genie space from ``demo/genie-examples.md`` via the REST API."""
+"""Create or update the Genie space from ``demo/genie-space.md`` via the REST API."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from .config import Config
 
 API = "/api/2.0/genie/spaces"
-DOC_SCHEMA = "workspace.obj_resolution_demo"  # schema written in genie-examples.md
+DOC_SCHEMA = "workspace.obj_resolution_demo"  # schema written in genie-space.md
 
 
 def genie_id(*parts: str) -> str:
@@ -22,7 +22,7 @@ def genie_id(*parts: str) -> str:
 
 
 def parse_genie_md(text: str, schema: str) -> tuple[str, list[tuple[int, str, str]]]:
-    """Read the space instructions and examples from ``genie-examples.md``.
+    """Read the space instructions and examples from ``genie-space.md``.
 
     :param schema: ``catalog.schema`` to use in place of the one written in the file.
     :return: (instructions, [(number, question, sql)]).
@@ -71,7 +71,7 @@ def sync_space(
     from databricks.sdk import WorkspaceClient
     from databricks.sdk.errors import Aborted
 
-    md = cfg.repo_root / "demo" / "genie-examples.md"
+    md = cfg.repo_root / "demo" / "genie-space.md"
     instructions, examples = parse_genie_md(md.read_text(), cfg.s)
     by_number = {n: q for n, q, _ in examples}
     missing = [n for n in sample_questions if n not in by_number]
