@@ -63,7 +63,7 @@ def test_parse_genie_examples() -> None:
     md = Config(catalog="test").repo_root / "demo" / "genie-examples.md"
     instructions, examples = parse_genie_md(md.read_text(), "test.obj_resolution_demo")
     assert "oms_objects" in instructions
-    assert [n for n, _, _ in examples] == list(range(1, 16))
+    assert [n for n, _, _ in examples] == list(range(1, 17))
     assert all("workspace." not in sql for _, _, sql in examples)
 
 

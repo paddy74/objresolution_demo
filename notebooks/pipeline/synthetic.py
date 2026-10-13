@@ -353,6 +353,10 @@ def generate(now: dt.datetime, seed: int = 42) -> Sources:
                            producers=["algorithm"], exact=True)  # fmt: skip
 
     obs = pd.DataFrame(obs_rows)
+    # A duplicate record is the same real object as its original, so observations sampled
+    # for the duplicate belong to the original. No random draws depend on this.
+    dup_of = objects.dropna(subset="dup_of").set_index("object_id").dup_of
+    obs["true_object_id"] = obs.true_object_id.replace(dup_of.to_dict())
     obs["batch"] = rng.integers(1, 3, len(obs))  # delivered in two files
 
     # Activity history: objects that are still being observed were seen more recently.

@@ -74,7 +74,7 @@ Naming follows the pipeline notebook (`<catalog>.<schema>.<table>`; schema `obj_
 | `cco_classes`                                               | CCO via rdflib                                            | Ontology          | `iri`, `label`, `parent_iris`, `ancestor_iris`                                                                                                                                                           | rdflib flatten (runs in the pipeline notebook)                                                                                |
 
 - Two required source *types* are met by relational (OMS + tasking) plus JSON feed. Reports add a document source.
-- `true_object_id` is **never** a model feature. It stands in for past analyst adjudications when generating labels, and for scoring the demo. Say this out loud in the demo. In production the labels come from the review queue (`review_decisions`).
+- `true_object_id` is **never** a model feature. It stands in for past analyst adjudications when generating labels, and for scoring the demo. A link to a seeded duplicate record (`dup_of`) counts as a match, because both records are the same object. Say this out loud in the demo. In production the labels come from the review queue (`review_decisions`).
 - `marking` values are `OPEN` / `RESTRICTED`, so nobody mistakes them for real classification banners.
 
 ### Layer 2: silver
@@ -99,6 +99,7 @@ Features (all DOUBLE): `dist_m`, `type_score`, `type_missing`, `likelihood_rank`
 | `nom_edges`, `cc_0`, `cc_1`, `cc_final`                                           | Label propagation over `NOMINATE` observations (runs in the pipeline notebook) | `src`/`dst`, `id`/`label`                                                 |
 | `gold_nominations`                                                                | Clusters with ≥ 2 observations                                                 | `object_id` (`NOM-…`), `object_type`, `lat`, `lon`, `obs_count`           |
 | `review_queue` (a view over `silver_model_decisions` where `decision = 'REVIEW'`) |                                                                                | `obs_id`, `candidate object_id`, `match_prob`, `reason`                   |
+| `possible_duplicate_objects` (a view over `silver_scored_pairs`)                  | Record pairs that are each other's runner-up, within 0.2, for ≥ 2 observations | `object_id_1`, `object_id_2`, `records_apart_m`, `close_call_observations` |
 | `review_decisions`                                                                | Analyst approve/reject (new, written live)                                     | `obs_id`, `object_id`, `decision`, `decided_by`, `decided_at`             |
 | `oms_objects` (MERGE target)                                                      | `AUTO` associations plus nominations plus approved reviews                     | adds rows with `source = 'DATABRICKS_NOMINATION'`, `status = 'NOMINATED'` |
 | `silver_reports` / `object_dossiers`                                              | `ai_query` over observations, scores and `bronze_reports` for one object       | `object_id`, `dossier_text`, `cited_ids`, `generated_at`                  |
@@ -124,7 +125,7 @@ Expected ≈ 4,100 observations; **generated 4,662** (`synthetic.generate`; 233 
 The uniform generator makes clean cases easy and REVIEW cases rare, which would leave the review queue nearly empty. Add these, then check the counts.
 
 1. **Twin objects (about 25 pairs).** Two OMS records 150–400 m apart with compatible types (for example two Trucks, or an Armored Fighting Vehicle and a Truck). Three observations placed between them with the shared generic type (for example `Ground Vehicle`) or missing type. This is the "how many objects really are there?" case, and it produces genuine `REVIEW` rows.
-2. **Duplicate-object evidence.** For 5 of the twins (same type, same 150–400 m spacing), give the same underlying `true_object_id` to observations pointing at both records. This lets you say "the model surfaced that these two records may be one object", and lets the object count move before and after.
+2. **Duplicate-object evidence.** For 5 of the twins (same type, same 150–400 m spacing), give the same underlying `true_object_id` to observations pointing at both records (the original's ID, including observations sampled for the duplicate record). Training counts a link to either record as a match, so the model scores both high and `possible_duplicate_objects` lists the pair. This lets you say "the model surfaced that these two records may be one object"; they are flagged for an analyst, not merged, so the object count does not change.
 3. **Partial single-source observations (the "discarded data" story).** For each of about 30 of the `NEW-` objects, generate 4 observations that are individually unusable: one missing type, one generic type, one specific type from an algorithm with a low score (0.40–0.55, shown under ICD 203 as unlikely or roughly even chance), and one 1–3 km away (km-scale position error). No single one passes the `AUTO` threshold or can support an analyst judgment alone. The first three cluster into one nomination; the km-off one stays unclustered, showing the pipeline does not over-merge.
 4. **Low-likelihood algorithm noise.** About 5% of observations with no real object behind them (`true_object_id = NULL`), single algorithm detections placed at random, with a low source likelihood. They should stay `NOMINATE` and **not** cluster; random placement means a few may land near an object or each other.
 5. **Cross-producer corroboration.** For some existing objects, add one algorithm and one analyst observation within 100 m. These are the clean `AUTO` cases.
@@ -132,14 +133,14 @@ The uniform generator makes clean cases easy and REVIEW cases rare, which would 
 
 ### Hero objects (named, memorised, used in the demo)
 Pick IDs after a run, and keep a one-line cheat card.
-| Hero                         | Scenario                                                                                 | Shows                                                                                                     |
-| ---------------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| **A: clean auto-associate**  | Armored Fighting Vehicle, 4+ observations (algorithm + analyst), match_prob > 0.95       | Auto-associate, map, dossier with citations                                                               |
-| **B: review**                | Twin Trucks 200 m apart; a generic `Vehicle` observation with `match_prob` ~0.6 for each | Review queue, "why this probability", approve/reject, MERGE write-back, label for retraining              |
-| **C: recovered / nominated** | `NEW-` cluster of 3 partial observations (case 3)                                        | A new object nominated from observations that were individually discarded; "observations recovered" count |
+| Hero                         | Scenario                                                                                                                             | Shows                                                                                                     |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| **A: clean auto-associate**  | Armored Fighting Vehicle, 4+ observations (algorithm + analyst), match_prob > 0.95                                                   | Auto-associate, map, dossier with citations                                                               |
+| **B: review**                | Look-alike twin records 150–400 m apart (case 1); a weakly typed observation between them lands in `REVIEW` (last run: 0.63 vs 0.47) | Review queue, "why this probability", approve/reject, MERGE write-back, label for retraining              |
+| **C: recovered / nominated** | Nominated cluster whose observations are all weak: generic or missing type, or a weak source likelihood (last run: 6 observations)   | A new object nominated from observations that were individually discarded; "observations recovered" count |
 
 ### Checks to run after generation
-- Count `AUTO` / `REVIEW` / `NOMINATE`. The measured REVIEW queue is 810 rows (section 6), driven by weak typing rather than twins, so it is accepted as a ranked queue, not tuned.
+- Count `AUTO` / `REVIEW` / `NOMINATE`. The measured REVIEW queue is 137 rows (2.9%, section 6); it is presented as a ranked queue, not tuned.
 - Precision per decision band against `true_object_id` (the pipeline notebook prints `precision_vs_synthetic_truth`). Record the numbers after each run for the demo and slides, labelled **synthetic**.
 - Nominations: `noms` and `recovered` (the notebook prints these). Report the recovered-observation count and its share of all observations.
 - Confirm no `true_object_id` appears in the model features or the dossier prompt.
@@ -156,15 +157,15 @@ Synthetic data. Band precision is **in-sample**; AUC and average precision are *
 
 | Item                       | Value                                                                                                                                  |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Observations / OMS objects | 4,474 / 2,025 seeded; 2,171 after 146 nominations are merged                                                                           |
-| AUTO                       | 2,981 (66.6%), precision 0.989                                                                                                         |
-| REVIEW                     | 810 (18.1%), precision 0.962 (a ranked queue; not tuned)                                                                               |
-| NOMINATE                   | 683 (15.3%), precision 0.933                                                                                                           |
-| Held-out                   | AUC 0.859, average precision 0.937                                                                                                     |
-| Nominations / recovered    | 146 nominations, 352 observations recovered (7.9% of observations)                                                                     |
-| Seeded duplicates surfaced | 3 of 5                                                                                                                                 |
-| Model                      | `workspace.obj_resolution_demo.obj_resolution_match_model` v1 (Unity Catalog)                                                          |
-| Heroes                     | A `OBJ-00599`; B `OBJ-T005` (obs `OBS-559829602922`, look-alike `OBJ-00081`, 0.854 vs 0.304); C `NOM-406859eed6` (4 weak observations) |
-| Compute                    | 4.8 minutes end to end                                                                                                                 |
+| Observations / OMS objects | 4,662 / 2,025 seeded; 2,153 after 128 nominations are merged                                                                           |
+| AUTO                       | 3,862 (82.8%), precision 0.995                                                                                                         |
+| REVIEW                     | 137 (2.9%), precision 0.891 (a ranked queue; not tuned)                                                                                |
+| NOMINATE                   | 663 (14.2%), precision 0.979                                                                                                           |
+| Held-out                   | AUC 0.978, average precision 0.992                                                                                                     |
+| Nominations / recovered    | 128 nominations, 335 observations recovered (7.2% of observations)                                                                     |
+| Seeded duplicates surfaced | 5 of 5, in 6 possible-duplicate pairs (`possible_duplicate_objects`; 1 pair is not a seeded duplicate)                                 |
+| Model                      | `workspace.obj_resolution_demo.obj_resolution_match_model` v8 (Unity Catalog)                                                          |
+| Heroes                     | A `OBJ-01289`; B `OBJ-00443` (obs `OBS-804771865849`, look-alike `OBJ-T011`, 0.627 vs 0.466); C `NOM-57872318ae` (6 weak observations) |
+| Compute                    | 3.1 minutes end to end                                                                                                                 |
 
-No rules baseline has been run, so make no claim of an edge over rules. Caveat: hero B's runner-up is 0.304, so it is a REVIEW case because it falls below 0.9, not because the two candidates are tied.
+No rules baseline has been run, so make no claim of an edge over rules. Hero B is a REVIEW case because 0.627 is below 0.9; the runner-up at 0.466 is the look-alike record, 0.161 behind.

@@ -71,16 +71,16 @@ Rules for every slide: synthetic data only, and the word **synthetic** appears o
 
 | Hero                        | What it shows                                                                                                                                    | Synthetic result                                                     |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
-| A: Armored Fighting Vehicle | Algorithm and analyst agree, auto-associated at >= 0.9                                                                                           | match_prob 0.985 (mean of 5 observations, `OBJ-00599`)               |
-| B: look-alike Trucks        | A Truck observation sits near two look-alike records; the top candidate is 0.854, below 0.9, so an analyst decides and the object system updates | match_prob 0.854 vs runner-up 0.304 (`OBJ-T005`)                     |
-| C: nominated object         | Four observations, each generic or missing type, become one new object                                                                           | 146 nominations, 352 observations recovered (7.9%); `NOM-406859eed6` |
+| A: Armored Fighting Vehicle | Algorithm and analyst agree, auto-associated at >= 0.9                                                                                           | match_prob 0.996 (mean of 6 observations, `OBJ-01289`)               |
+| B: look-alike Trucks        | A Truck observation sits near two look-alike records; the top candidate is 0.627, below 0.9, so an analyst decides and the object system updates | match_prob 0.627 vs runner-up 0.466 (`OBJ-00443`)                    |
+| C: nominated object         | Six observations, each with a generic or missing type or a weak source likelihood, become one new object                                         | 128 nominations, 335 observations recovered (7.2%); `NOM-57872318ae` |
 
 Footer: "All data synthetic. Precision AUTO 98.3%, REVIEW 94.2%, NOMINATE 90.5% (in-sample, model) measured against synthetic ground truth; says nothing about real-world accuracy."
 
 **Visual suggestion:** three screenshots from the actual demo (map with Hero A selected, review queue with Hero B, nomination with Hero C), each with a one-line caption. Take the screenshots during the rehearsal run so they exist if the live demo fails. Add a small funnel: `[total observations]` to `[AUTO]` / `[REVIEW]` / `[NOMINATE]` counts, all marked synthetic.
 
 **Speaker notes (about 70 s)**
-"Three cases, chosen on purpose. A: the easy win. Two sources agree, the model is above 0.9, no analyst time spent. B: the hard case. Two records 200 metres apart and a generic 'vehicle' report that fits both. That is the 'how many objects are there' argument, and here it has a probability, a reason, and one analyst decision that moves the count and writes back. C: the discarded data. Three observations, each unusable alone: a missing type, a generic type, a low-confidence one. Together they nominate a new object. These numbers are from synthetic data I generated, with ground truth I planted, so the precision I show says nothing about your real-world accuracy; the real accuracy is something we measure together in the first 30 days. I will show all of this live next." Then go to the live demo.
+"Three cases, chosen on purpose. A: the easy win. Two sources agree, the model is above 0.9, no analyst time spent. B: the hard case. Two look-alike records a few hundred metres apart and a weakly typed report that fits both. That is the 'how many objects are there' argument, and here it has a probability, a reason, and one analyst decision that moves the count and writes back. C: the discarded data. Six observations, each unusable alone: a missing or generic type, or a weak source. Together they nominate a new object. These numbers are from synthetic data I generated, with ground truth I planted, so the precision I show says nothing about your real-world accuracy; the real accuracy is something we measure together in the first 30 days. I will show all of this live next." Then go to the live demo.
 
 **Pre-empts:** "Is this real or just slides?" and "Do I trust the AI?" Reliability controls to mention if asked: the dossier is restricted to the retrieved rows and cites IDs, the demo checks cited IDs exist, the dossier never changes object data, the analyst approves (file 02, Layer 3).
 
@@ -122,7 +122,7 @@ Assumptions table (right): each row is an input, who supplies it, and how it is 
 | Share auto-associated (S)            | Pilot, on the customer's adjudicated history | Precision at the 0.9 threshold vs adjudications |
 | Cost of a wrong merge or split       | Business Leader                              | Sets the thresholds, not a savings number       |
 
-Demo values, labelled: "Synthetic demo: S = 66.6% auto-associated (in-sample, 4,474 observations), 18.1% routed to review, recovered = 352 observations (7.9%), synthetic". **Do not put any dollar figure on this slide.**
+Demo values, labelled: "Synthetic demo: S = 82.8% auto-associated (in-sample, 4,662 observations), 2.9% routed to review, recovered = 335 observations (7.2%), synthetic". **Do not put any dollar figure on this slide.**
 
 **Visual suggestion:** a two-column slide, formula on the left in large type with blanks, assumptions table on the right. Optionally a before/after bar for "time to settle a disputed count" with the left bar labelled "today: [customer to supply]" and the right "pilot: [measure]". No invented bar heights; use blank placeholders if no data.
 

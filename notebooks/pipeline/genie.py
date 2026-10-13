@@ -65,9 +65,11 @@ def sync_space(
     :param warehouse_id: SQL warehouse; ``None`` keeps an existing space's warehouse, or picks
         the first warehouse for a new space.
     :return: cheat-card facts: whether the space was created or updated, and its ID.
-    :raises RuntimeError: if several spaces share the title or no warehouse exists.
+    :raises RuntimeError: if several spaces share the title, no warehouse exists, or the space
+        changed between this cell's export and its update.
     """
     from databricks.sdk import WorkspaceClient
+    from databricks.sdk.errors import Aborted
 
     md = cfg.repo_root / "demo" / "genie-examples.md"
     instructions, examples = parse_genie_md(md.read_text(), cfg.s)
@@ -92,40 +94,34 @@ def sync_space(
         raise RuntimeError(
             f"{len(existing)} Genie spaces titled {title!r}; trash the extras first"
         )
-    if existing:
-        got = w.api_client.do(
-            "GET",
-            f"{API}/{existing[0]['space_id']}",
-            query={"include_serialized_space": "true"},
+
+    def apply(space: dict) -> dict:
+        """Replace what the markdown owns in an exported (or new) space."""
+        space.setdefault("config", {})["sample_questions"] = by_id(
+            [
+                {"id": genie_id("sample", by_number[n]), "question": [by_number[n]]}
+                for n in sample_questions
+            ]
         )
-        space = json.loads(got["serialized_space"])
-    else:
-        got, space = {}, {"version": 2}
-
-    space.setdefault("config", {})["sample_questions"] = by_id(
-        [
-            {"id": genie_id("sample", by_number[n]), "question": [by_number[n]]}
-            for n in sample_questions
+        space.setdefault("instructions", {})["text_instructions"] = [
+            {"id": genie_id("instructions"), "content": [instructions]}
         ]
-    )
-    space.setdefault("instructions", {})["text_instructions"] = [
-        {"id": genie_id("instructions"), "content": [instructions]}
-    ]
-    space["instructions"]["example_question_sqls"] = by_id(
-        [
-            {"id": genie_id("example", q), "question": [q], "sql": [sql]}
-            for _, q, sql in examples
+        space["instructions"]["example_question_sqls"] = by_id(
+            [
+                {"id": genie_id("example", q), "question": [q], "sql": [sql]}
+                for _, q, sql in examples
+            ]
+        )
+        kept = {
+            t["identifier"]: t
+            for t in space.setdefault("data_sources", {}).get("tables", [])
+        }
+        space["data_sources"]["tables"] = [
+            kept.get(f"{cfg.s}.{t}", {"identifier": f"{cfg.s}.{t}"}) for t in tables
         ]
-    )
-    kept = {
-        t["identifier"]: t
-        for t in space.setdefault("data_sources", {}).get("tables", [])
-    }
-    space["data_sources"]["tables"] = [
-        kept.get(f"{cfg.s}.{t}", {"identifier": f"{cfg.s}.{t}"}) for t in tables
-    ]
+        return space
 
-    body = {"title": title, "serialized_space": json.dumps(space)}
+    body = {"title": title}
     if warehouse_id or not existing:
         wh = warehouse_id or next((x.id for x in w.warehouses.list()), None)
         if not wh:
@@ -134,12 +130,29 @@ def sync_space(
             )
         body["warehouse_id"] = wh
     if existing:
-        res = w.api_client.do(
-            "PATCH",
-            f"{API}/{existing[0]['space_id']}",
-            body={**body, "etag": got.get("etag")},
-        )
+        url = f"{API}/{existing[0]['space_id']}"
+        got = w.api_client.do("GET", url, query={"include_serialized_space": "true"})
+        old = json.loads(got["serialized_space"])
+        old_tables = {
+            t["identifier"] for t in old.get("data_sources", {}).get("tables", [])
+        }
+        space = apply(old)
+        body["serialized_space"] = json.dumps(space)
+        # The etag stops this update from overwriting a change made after the export. Genie
+        # rejects any update that adds a table when an etag is sent (tested 2026-10-12), so
+        # only then is it left out; the export is milliseconds old.
+        if {t["identifier"] for t in space["data_sources"]["tables"]} <= old_tables:
+            body["etag"] = got.get("etag")
+        else:
+            print("Genie space gets new tables: updating without the etag check")
+        try:
+            res = w.api_client.do("PATCH", url, body=body)
+        except Aborted as e:
+            raise RuntimeError(
+                "Genie space changed after this cell exported it (in the UI?); re-run this cell"
+            ) from e
     else:
+        body["serialized_space"] = json.dumps(apply({"version": 2}))
         res = w.api_client.do("POST", API, body=body)
         print(
             "New space: hide true_object_id (bronze_observations) and dup_of (oms_objects) in the Genie UI once;"

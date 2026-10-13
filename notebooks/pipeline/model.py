@@ -26,6 +26,11 @@ FEATURES = [
 ]
 MODEL_NAME = "obj_resolution_match_model"
 MODEL_ALIAS = "champion"
+# MLflow 3 saves sklearn models with skops, which refuses classes it doesn't know; this is the
+# only one HistGradientBoostingClassifier needs (feasibility_tests.py section 5).
+SKOPS_TRUSTED_TYPES = [
+    "sklearn.ensemble._hist_gradient_boosting.predictor.TreePredictor"
+]
 
 
 def build_candidates(spark: SparkSession, cfg: Config) -> dict:
@@ -33,7 +38,9 @@ def build_candidates(spark: SparkSession, cfg: Config) -> dict:
 
     Blocking keeps objects in the observation's H3 cell or its neighbours, within
     ``cfg.max_dist_m`` and with a compatible type. ``label`` comes from ``true_object_id`` and
-    stands in for past analyst adjudications; ground truth is never a feature.
+    stands in for past analyst adjudications; ground truth is never a feature. A seeded
+    duplicate record is the same object as its original (``dup_of``), so a link to either is a
+    match; otherwise training teaches the model to rule the duplicate out instead of flagging it.
     ``likelihood_rank`` (1 to 7) is the source's ICD 203 likelihood term, so machine scores and
     analyst terms enter the model on one scale. Features are cast to DOUBLE because Spark
     ``CASE`` returns DECIMAL, which breaks MLflow's JSON input example.
@@ -64,7 +71,7 @@ def build_candidates(spark: SparkSession, cfg: Config) -> dict:
         CAST(CAST(o.producer = 'analyst' AS INT) AS DOUBLE) AS is_analyst,
         CAST(greatest(0, (unix_timestamp(o.obs_time) - unix_timestamp(b.last_seen)) / 86400) AS DOUBLE)
           AS days_since_last_seen,
-        CAST(coalesce(o.true_object_id = b.object_id, false) AS INT) AS label
+        CAST(coalesce(o.true_object_id IN (b.object_id, b.dup_of), false) AS INT) AS label
       FROM o JOIN b ON o.cell = b.cell
       LEFT JOIN {cfg.s}.type_ancestors ta ON ta.type = b.object_type AND ta.ancestor = o.reported_type)
     WHERE type_score > 0 AND dist_m <= {cfg.max_dist_m}
@@ -116,7 +123,11 @@ def train(
         )
         mlflow.log_metrics(metrics)
         mlflow.sklearn.log_model(
-            clf, "model", signature=signature, input_example=X.iloc[:5]
+            clf,
+            name="model",
+            signature=signature,
+            input_example=X.iloc[:5],
+            skops_trusted_types=SKOPS_TRUSTED_TYPES,
         )
     mlflow.set_registry_uri("databricks-uc")
     name = f"{cfg.s}.{MODEL_NAME}"
@@ -135,10 +146,13 @@ def score(
 
     Each observation takes its best pair: ``AUTO`` at or above ``cfg.auto_t``, ``REVIEW`` down
     to ``cfg.review_t``, else (or with no candidate) ``NOMINATE``. Thresholds are demo values,
-    not tuned. Band precision is in-sample against synthetic ground truth.
+    not tuned. Band precision is in-sample against synthetic ground truth. Also creates the
+    ``possible_duplicate_objects`` view: pairs of records that the model scores as close calls
+    for the same observations, which may be one object recorded twice.
 
     :param clf: classifier from ``train``; ``None`` loads the registered ``champion`` version.
-    :return: cheat-card facts: band counts and precision, seeded duplicates surfaced.
+    :return: cheat-card facts: band counts and precision, seeded duplicates surfaced, and
+        the number of possible duplicate pairs.
     """
     if clf is None:
         import mlflow
@@ -166,13 +180,14 @@ def score(
     FROM {cfg.s}.bronze_observations ob LEFT JOIN best b ON ob.obs_id = b.obs_id AND b.rk = 1""")
 
     # A NOMINATE is correct when the real object is not in the object system (or is noise:
-    # NULL truth); a match is correct only when it names the real object.
+    # NULL truth); a match is correct only when it names the real object or its duplicate record.
     bands = spark.sql(f"""
-      SELECT decision, count(*) AS n,
-        round(avg(CASE WHEN decision = 'NOMINATE' THEN CAST(coalesce(true_object_id, '') NOT LIKE 'OBJ-%' AS DOUBLE)
-                       ELSE CAST(coalesce(matched_object_id = true_object_id, false) AS DOUBLE) END), 3)
+      SELECT d.decision, count(*) AS n,
+        round(avg(CASE WHEN d.decision = 'NOMINATE' THEN CAST(coalesce(d.true_object_id, '') NOT LIKE 'OBJ-%' AS DOUBLE)
+                       ELSE CAST(coalesce(d.true_object_id IN (d.matched_object_id, o.dup_of), false) AS DOUBLE) END), 3)
           AS precision_vs_synthetic_truth
-      FROM {cfg.s}.silver_model_decisions GROUP BY decision ORDER BY decision""").toPandas()
+      FROM {cfg.s}.silver_model_decisions d LEFT JOIN {cfg.s}.oms_objects o ON o.object_id = d.matched_object_id
+      GROUP BY d.decision ORDER BY d.decision""").toPandas()
     bands["pct"] = (100 * bands.n / bands.n.sum()).round(1)
     print("IN-SAMPLE band counts and precision (synthetic ground truth):")
     print(bands.to_string(index=False))
@@ -182,25 +197,41 @@ def score(
         "present it as a ranked queue, do not tune to shrink it"
     )
 
-    # Does the model surface the seeded duplicate records as ambiguous (two close top scores)?
-    flagged = spark.sql(f"""
-      WITH r AS (SELECT obs_id, object_id, match_prob,
-                        row_number() OVER (PARTITION BY obs_id ORDER BY match_prob DESC) rk
-                 FROM {cfg.s}.silver_scored_pairs),
-      t AS (SELECT least(a.object_id, b.object_id) o1, greatest(a.object_id, b.object_id) o2, a.obs_id
-            FROM r a JOIN r b ON a.obs_id = b.obs_id AND a.rk = 1 AND b.rk = 2
-            WHERE b.match_prob >= 0.3 AND a.match_prob - b.match_prob <= 0.2)
-      SELECT o1, o2, count(*) n_obs FROM t GROUP BY o1, o2 HAVING count(*) >= 2""").toPandas()
+    # Possible duplicates: two records are each other's runner-up, within 0.2, for at least two
+    # observations. Shown to analysts (Genie, dashboard); dup_of is used only to score it below.
+    spark.sql(f"""
+    CREATE OR REPLACE VIEW {cfg.s}.possible_duplicate_objects AS
+    WITH r AS (SELECT obs_id, object_id, match_prob,
+                      row_number() OVER (PARTITION BY obs_id ORDER BY match_prob DESC) rk
+               FROM {cfg.s}.silver_scored_pairs),
+    t AS (SELECT least(a.object_id, b.object_id) AS o1, greatest(a.object_id, b.object_id) AS o2,
+                 a.match_prob - b.match_prob AS gap
+          FROM r a JOIN r b ON a.obs_id = b.obs_id AND a.rk = 1 AND b.rk = 2
+          WHERE b.match_prob >= 0.3 AND a.match_prob - b.match_prob <= 0.2),
+    p AS (SELECT o1, o2, count(*) AS close_call_observations, round(avg(gap), 3) AS avg_score_gap
+          FROM t GROUP BY o1, o2 HAVING count(*) >= 2)
+    SELECT p.o1 AS object_id_1, concat(x.object_type, ' ', x.designator) AS object_name_1,
+           p.o2 AS object_id_2, concat(y.object_type, ' ', y.designator) AS object_name_2,
+           round({hav_sql("x.lat", "x.lon", "y.lat", "y.lon")}, 0) AS records_apart_m,
+           p.close_call_observations, p.avg_score_gap
+    FROM p JOIN {cfg.s}.oms_objects x ON x.object_id = p.o1
+    JOIN {cfg.s}.oms_objects y ON y.object_id = p.o2""")
+    flagged = spark.table(f"{cfg.s}.possible_duplicate_objects").toPandas()
     seeded = spark.sql(
         f"SELECT dup_of, object_id FROM {cfg.s}.oms_objects WHERE dup_of IS NOT NULL"
     ).toPandas()
     seeded_pairs = {
         tuple(sorted(p)) for p in zip(seeded.dup_of, seeded.object_id, strict=True)
     }
-    flagged_pairs = {tuple(sorted(p)) for p in zip(flagged.o1, flagged.o2, strict=True)}
+    flagged_pairs = set(zip(flagged.object_id_1, flagged.object_id_2, strict=True))
     recovered = f"{len(seeded_pairs & flagged_pairs)}/{len(seeded_pairs)}"
-    print("seeded duplicate objects surfaced as ambiguous:", recovered)
+    print(
+        "seeded duplicate objects surfaced as ambiguous:",
+        recovered,
+        f"(possible_duplicate_objects: {len(flagged_pairs)} pairs)",
+    )
     return {
         "bands": json.loads(bands.set_index("decision").to_json(orient="index")),
         "duplicates_recovered": recovered,
+        "possible_duplicate_pairs": len(flagged_pairs),
     }

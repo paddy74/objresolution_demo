@@ -442,8 +442,15 @@ if "clf" in globals():
                 }
             )
             mlflow.log_metrics(metrics)
+            # MLflow 3 saves with skops, which rejects classes it doesn't know unless trusted.
             mlflow.sklearn.log_model(
-                clf, "model", signature=sig, input_example=X.iloc[:5]
+                clf,
+                name="model",
+                signature=sig,
+                input_example=X.iloc[:5],
+                skops_trusted_types=[
+                    "sklearn.ensemble._hist_gradient_boosting.predictor.TreePredictor"
+                ],
             )
         RUN_ID = run.info.run_id
         print("RUN_ID:", RUN_ID)
@@ -678,6 +685,8 @@ else:
 # MAGIC %md ## 11. Genie space API (scripted create and update)
 # MAGIC Calls the REST endpoints through the SDK's API client, so it works whatever `databricks-sdk` version serverless ships.
 # MAGIC Creates a throwaway space on its own table, exports it, updates it with the etag, asks one question, then trashes it.
+# MAGIC Not covered: an update that adds a table fails when it sends the etag ("modified since this export"), so
+# MAGIC `sync_space` in `pipeline/genie.py` leaves the etag out for those updates.
 
 # COMMAND ----------
 

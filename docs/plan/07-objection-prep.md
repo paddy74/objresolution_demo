@@ -32,7 +32,7 @@ Cares about: decision speed, one trusted number, cost of inaction, time to value
 ### 1.1 Cost: "What does this cost, and what do I get for it?"
 - **Likely wording:** "This sounds expensive. Why not hire two more analysts?"
 - **Answer (~25 s):** "I will not quote production pricing from a free workspace, because it would be made up. What I can say is that the whole demo pipeline took about five minutes of compute, so the cost is people-time and licences, not machine-time. The value case is analyst hours spent correlating and the cost of a wrong object count in a brief. In the 30-day plan we measure both on your data before you commit to more."
-- **Proof point:** the pipeline notebook runs end to end in about 4.8 minutes of compute (file 02); the 30-day plan ends with a measured baseline versus pilot.
+- **Proof point:** the pipeline notebook runs end to end in about 3.1 minutes of compute (file 02); the 30-day plan ends with a measured baseline versus pilot.
 - **Don't say:** any dollar figure, "it pays for itself", "cheaper than Palantir / Snowflake", or an ROI percentage. Do not invent time-saved statistics.
 - **Honest limit:** Free Edition cost behaviour does not predict production cost. A pilot with usage tracking is the real answer.
 
@@ -45,7 +45,7 @@ Cares about: decision speed, one trusted number, cost of inaction, time to value
 ### 1.3 Trust: "Whose number is right?"
 - **Likely wording:** "Every brief starts with a debate. Will this end it?"
 - **Answer (~25 s):** "It makes the debate shorter and evidence-based. Each object count traces back to source observations with `source_file` and `ingested_at`, each match has a probability and a reason, and each analyst decision is recorded. You are still arguing, but about a specific uncertain case, not about whose spreadsheet is right."
-- **Proof point:** `source_file` / `ingested_at` on every bronze table; `review_decisions` table; object count before and after the twin duplicates are resolved (seeded duplicates, synthetic).
+- **Proof point:** `source_file` / `ingested_at` on every bronze table; `review_decisions` table; object count before and after nominations are merged; `possible_duplicate_objects` lists record pairs the model sees as one object, for an analyst to confirm (seeded duplicates, synthetic).
 - **Don't say:** "single source of truth" as a guarantee. Say "a governed, traceable source".
 
 ### 1.4 AI reliability: "Will the AI make things up in a brief?"

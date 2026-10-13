@@ -21,6 +21,8 @@ State likelihoods with the ICD 203 terms (almost no chance, very unlikely, unlik
 likely, very likely, almost certain); never combine a likelihood and a confidence in one sentence.
 - gold_nominations: new objects created from clusters of unmatched observations.
 - object_dossiers: sourced summaries; cited_ids are report IDs.
+- possible_duplicate_objects: pairs of objects the model scores as close calls for the same observations;
+  each pair may be one object recorded twice and needs an analyst to confirm.
 Count "unique objects with observations" through silver_model_decisions.matched_object_id where decision = 'AUTO'.
 Reported types Facility, Ground Vehicle and Vehicle are generic (weak); NULL is missing.
 ```
@@ -112,8 +114,8 @@ GROUP BY b.producer
 ORDER BY b.producer;
 ```
 
-### 10. Why is the review queue so large? Show decisions by how specific the reported type is
-This is the answer to "why 810 rows": weakly typed observations cannot clear the 0.9 threshold.
+### 10. Show decisions by how specific the reported type is
+Shows how weakly typed observations fall below the 0.9 threshold.
 ```sql
 SELECT CASE WHEN b.reported_type IS NULL THEN 'missing type'
             WHEN b.reported_type IN ('Facility', 'Ground Vehicle', 'Vehicle') THEN 'generic type'
@@ -126,12 +128,12 @@ GROUP BY 1, 2
 ORDER BY 1, 2;
 ```
 
-### 11. Show the dossier for object OBJ-00599
-Replace the ID with hero A or B from the cheat card (A: `OBJ-00599`, B: `OBJ-T005`).
+### 11. Show the dossier for object OBJ-01289
+Replace the ID with hero A or B from the cheat card (A: `OBJ-01289`, B: `OBJ-00443`).
 ```sql
 SELECT object_id, hero, dossier_text, cited_ids, generated_by
 FROM workspace.obj_resolution_demo.object_dossiers
-WHERE object_id = 'OBJ-00599';
+WHERE object_id = 'OBJ-01289';
 ```
 
 ### 12. Which files did the observations come from, and when did they land?
@@ -170,11 +172,20 @@ FROM workspace.obj_resolution_demo.review_decisions
 GROUP BY decision, confidence;
 ```
 
+### 16. Which objects may be duplicate records of the same thing?
+Pairs where the model gave both records nearly the same score for at least two observations. A possible duplicate, not a confirmed one.
+```sql
+SELECT object_name_1, object_name_2, records_apart_m, close_call_observations, avg_score_gap
+FROM workspace.obj_resolution_demo.possible_duplicate_objects
+ORDER BY close_call_observations DESC, avg_score_gap ASC;
+```
+
 ## Which to use live
 - **Core demo (3):** 1, 5 (the plain-English question from the brief), and 2.
 - **Trust and lineage:** 12.
-- **If asked "why is the queue big":** 10.
+- **If asked "why does an observation go to review":** 10.
 - **To show the dossier:** 11, after the notebook has built it.
+- **"How many objects are there really?":** 16 (the model surfacing possible duplicate records).
 
 ## Phrasings to test as natural-language variants
 "How many Armored Fighting Vehicles were seen in the last three days", "Which observations need review", "How many new objects did we find", "Show me the dossier for the clean Armored Fighting Vehicle". If Genie gets one wrong, add that variant as another example rather than editing these.

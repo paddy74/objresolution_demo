@@ -4,9 +4,9 @@ Purpose: the minimum viable build, a 60-minute build sequence with checkpoints, 
 
 Build order is fixed: **data → model → GenAI → presentation**. Never cut a layer. A thin layer beats a missing layer, because the demo is one cohesive solution across all four.
 
-**Status:** `notebooks/generate_data.py` ran end to end in 4.8 minutes of compute. Held-out AUC 0.859; AUTO / REVIEW / NOMINATE 66.6% / 18.1% / 15.3%; 146 nominations; heroes in `demo_heroes`. Full numbers are in file 02 and file 03, section 6.
+**Status:** `notebooks/generate_data.py` ran end to end in 3.1 minutes of compute. Held-out AUC 0.978; AUTO / REVIEW / NOMINATE 82.8% / 2.9% / 14.2%; 128 nominations; heroes in `demo_heroes`. Full numbers are in file 02 and file 03, section 6.
 
-**REVIEW queue decision:** the REVIEW queue is large (810 rows, 18.1%) because of weakly typed observations, not the seeded twins. **Decision: do not tune seeds or thresholds to shrink it.** Present the queue as ranked by match probability (measured numbers are in file 03, section 6).
+**REVIEW queue decision:** the REVIEW queue is 137 rows (2.9%). **Decision: do not tune seeds or thresholds to change its size.** Present the queue as ranked by match probability (measured numbers are in file 03, section 6).
 
 ## 1. Build
 

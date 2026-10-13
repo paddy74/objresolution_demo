@@ -25,18 +25,18 @@ Synthetic data. Band precision is **in-sample**; AUC and average precision are *
 
 | Item                       | Value                                                                                                                                  |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Observations / OMS objects | 4,474 / 2,025 seeded; 2,171 after 146 nominations are merged                                                                           |
-| AUTO                       | 2,981 (66.6%), precision 0.989                                                                                                         |
-| REVIEW                     | 810 (18.1%), precision 0.962 (a ranked queue; not tuned)                                                                               |
-| NOMINATE                   | 683 (15.3%), precision 0.933                                                                                                           |
-| Held-out                   | AUC 0.859, average precision 0.937                                                                                                     |
-| Nominations / recovered    | 146 nominations, 352 observations recovered (7.9% of observations)                                                                     |
-| Seeded duplicates surfaced | 3 of 5                                                                                                                                 |
-| Model                      | `workspace.obj_resolution_demo.obj_resolution_match_model` v1 (Unity Catalog)                                                          |
-| Heroes                     | A `OBJ-00599`; B `OBJ-T005` (obs `OBS-559829602922`, look-alike `OBJ-00081`, 0.854 vs 0.304); C `NOM-406859eed6` (4 weak observations) |
-| Compute                    | 4.8 minutes end to end                                                                                                                 |
+| Observations / OMS objects | 4,662 / 2,025 seeded; 2,153 after 128 nominations are merged                                                                           |
+| AUTO                       | 3,862 (82.8%), precision 0.995                                                                                                         |
+| REVIEW                     | 137 (2.9%), precision 0.891 (a ranked queue; not tuned)                                                                                |
+| NOMINATE                   | 663 (14.2%), precision 0.979                                                                                                           |
+| Held-out                   | AUC 0.978, average precision 0.992                                                                                                     |
+| Nominations / recovered    | 128 nominations, 335 observations recovered (7.2% of observations)                                                                     |
+| Seeded duplicates surfaced | 5 of 5, in 6 possible-duplicate pairs (`possible_duplicate_objects`; 1 pair is not a seeded duplicate)                                 |
+| Model                      | `workspace.obj_resolution_demo.obj_resolution_match_model` v8 (Unity Catalog)                                                          |
+| Heroes                     | A `OBJ-01289`; B `OBJ-00443` (obs `OBS-804771865849`, look-alike `OBJ-T011`, 0.627 vs 0.466); C `NOM-57872318ae` (6 weak observations) |
+| Compute                    | 3.1 minutes end to end                                                                                                                 |
 
-No rules baseline has been run, so make no claim of an edge over rules. Caveat: hero B's runner-up is 0.304, so it is a REVIEW case because it falls below 0.9, not because the two candidates are tied.
+No rules baseline has been run, so make no claim of an edge over rules. Hero B is a REVIEW case because 0.627 is below 0.9; the runner-up at 0.466 is the look-alike record, 0.161 behind.
 
 ## 1. Data flow (text diagram)
 
@@ -58,8 +58,8 @@ LAYER 2  PREDICTIVE ML                           v                              
         |                                        |            days_since_last_seen, label)
         |                      scikit-learn gradient boosting -> MLflow run -> UC model obj_resolution_match_model**
         |                                        v
-        |                            silver_model_decisions  (match_prob)
-        |                          /             |                     \
+        |                            silver_model_decisions  (match_prob) ---> possible_duplicate_objects
+        |                          /             |                     \     (pairs that may be one object; analyst confirms)
         |                  AUTO >= 0.9     REVIEW 0.5-0.9        NOMINATE < 0.5 / no candidate
         |                      |                 |                          |
         |                      |            review_queue              label propagation
