@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv run pytest -q)",
+      "Bash(uv run pytest)",
+      "Bash(uv run ruff check)",
+      "Bash(uv run ruff check -q)",
+      "Bash(uv run ruff check notebooks/)",
+      "Bash(uv run ruff format --check *)"
+    ]
+  }
+}
