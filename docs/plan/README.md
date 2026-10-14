@@ -11,3 +11,4 @@ Planning documents for the object resolution demo. Other files refer to these by
 | [05-demo-script.md](05-demo-script.md)               | Timed 30-minute demo script with recovery lines                               |
 | [06-slide-outline.md](06-slide-outline.md)           | Five-slide deck with speaker notes                                            |
 | [07-objection-prep.md](07-objection-prep.md)         | Objection answers by audience, platform authorization and competitor facts    |
+| [08-planned-features.md](08-planned-features.md) | Resumable build plan: icon map, COCOM/type/date filters, WEG/CCO object attributes, logging, demo companion |
