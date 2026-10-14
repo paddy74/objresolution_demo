@@ -209,3 +209,6 @@ __marimo__/
 
 # Databricks
 .databricks/
+
+# Raw wide WEG export (119 MB, over GitHub limit); committed as data/weg/*.csv
+data/WorldwideEquipmentGuide.csv
