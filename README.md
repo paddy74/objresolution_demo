@@ -15,15 +15,15 @@ The demo resolves incoming observations into one trusted, explainable record per
 
 ## Layout
 
-| Path              | Purpose                                                                                                                                                 |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `obj_resolution/` | Shared helpers used by notebooks and the app                                                                                                            |
-| `notebooks/`      | Feasibility checks and pipeline notebooks (Databricks `.py` source format)                                                                              |
-| `app/`            | Databricks App; its dependencies are in `app/requirements.txt`                                                                                          |
-| `data/ontology/`  | `CommonCoreOntologiesMerged.ttl` from the [Common Core Ontologies](https://github.com/CommonCoreOntology/CommonCoreOntologies) repo (`src/cco-merged/`) |
-| `docs/plan/`      | Planning documents ([index](docs/plan/README.md))                                                                                                       |
-| `demo/`           | Genie example queries and space instructions                                                                                                            |
-| `tests/unit/`     | Tests for `obj_resolution/` helpers                                                                                                                     |
+| Path             | Purpose                                                                                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `objresolution/` | Shared helpers used by notebooks and the app                                                                                                            |
+| `notebooks/`     | Feasibility checks and pipeline notebooks (Databricks `.py` source format)                                                                              |
+| `app/`           | Databricks App; its dependencies are in `app/requirements.txt`                                                                                          |
+| `data/ontology/` | `CommonCoreOntologiesMerged.ttl` from the [Common Core Ontologies](https://github.com/CommonCoreOntology/CommonCoreOntologies) repo (`src/cco-merged/`) |
+| `docs/plan/`     | Planning documents ([index](docs/plan/README.md))                                                                                                       |
+| `demo/`          | Genie example queries and space instructions                                                                                                            |
+| `tests/unit/`    | Tests for `objresolution/` helpers                                                                                                                      |
 
 ## Setup on Databricks
 

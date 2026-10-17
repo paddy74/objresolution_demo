@@ -104,9 +104,9 @@ Read the files your feature touches before changing them.
   - `run()` executes SQL through `databricks-sql-connector`;
   - pure helpers are inline (`coords`, `object_label`, `distance_m`, `time_ago`, `source_label`, `type_agreement`), and the module runs Streamlit on import, so it **cannot be imported by tests**;
   - the map uses `folium.CircleMarker` plus `folium.Icon`;
-  - it deploys from `app/` only, so it cannot import `notebooks/` or `obj_resolution/`.
+  - it deploys from `app/` only, so it cannot import `notebooks/` or `objresolution/`.
 - `app/requirements.txt`: `streamlit>=1.35`, folium, streamlit-folium, databricks-sdk, databricks-sql-connector, pandas.
-- `app/app.yaml`: env `DATABRICKS_WAREHOUSE_ID` (resource) and `OBJ_RESOLUTION_SCHEMA`.
+- `app/app.yaml`: env `DATABRICKS_WAREHOUSE_ID` (resource) and `OBJRESOLUTION_SCHEMA`.
 - `tests/unit/test_pipeline.py` covers:
   - determinism (`len(objects) == 2025`, equal frames);
   - report time within `[obs_time, now]`;
@@ -114,7 +114,7 @@ Read the files your feature touches before changing them.
   - Genie parse (**exactly 16 examples**, no `workspace.`);
   - ICD 203 bands and likelihood ordering;
   - seeded cases (twin distance `TWIN_M`, partial cases, noise fraction).
-- `pyproject.toml`: pytest `pythonpath = ["notebooks"]`; ruff line length 88; basedpyright includes `obj_resolution` and `tests` and excludes `notebooks` and `app`.
+- `pyproject.toml`: pytest `pythonpath = ["notebooks"]`; ruff line length 88; basedpyright includes `objresolution` and `tests` and excludes `notebooks` and `app`.
 - `demo/genie-space.md`: Genie instructions plus 16 examples; some mention the "last 72 hours".
 - `demo/10-minute-script.md`: timed script. It quotes the "72 hours" Genie question, hero IDs and measured numbers (4,662 obs, 2,025 objects, bands 3,862 / 137 / 663, 128 nominations, 335 recovered).
 - `docs/plan/03-data-model.md`: **the spec** (source of truth for tables, columns, parameters and seeded cases). §6 holds the measured numbers.
@@ -311,17 +311,17 @@ Keep pages as functions in `app.py` (`operating_picture()`, `review_queue()`). S
 **Databricks constraints** (repeat these in the `log.py` docstring):
 
 - **No file logs.** Serverless notebooks expose no driver log files to the user, and Databricks Apps capture only stdout and stderr (into the **Logs** tab). Stream to stdout; no file handlers anywhere.
-- **Pre-configured root logger.** Notebook Python has Databricks handlers on the root logger. `logging.basicConfig()` is a no-op without `force=True`, and forcing it would clobber the platform handlers. So the pipeline uses a **named logger `obj_resolution`** with `propagate=False` and a single `StreamHandler(sys.stdout)`.
+- **Pre-configured root logger.** Notebook Python has Databricks handlers on the root logger. `logging.basicConfig()` is a no-op without `force=True`, and forcing it would clobber the platform handlers. So the pipeline uses a **named logger `objresolution`** with `propagate=False` and a single `StreamHandler(sys.stdout)`.
 - **Re-runs.** `%autoreload` and re-run cells re-import modules, so setup must be idempotent: look for an existing handler tagged with a marker attribute.
 - **Noise.** Set `py4j`, `urllib3` and `databricks.sql` to WARNING.
 
 **`notebooks/pipeline/log.py`:**
 
 - `configure_logging(level: str | int = "INFO") -> logging.Logger`:
-  - sets up the `obj_resolution` logger once;
+  - sets up the `objresolution` logger once;
   - format `"%(asctime)s %(levelname)s %(name)s: %(message)s"`, `datefmt="%Y-%m-%dT%H:%M:%SZ"`, `converter = time.gmtime` (ISO-8601 UTC);
   - level from the env var `LOG_LEVEL`, else INFO.
-- `get_logger(name) -> logging.Logger` returns `logging.getLogger(f"obj_resolution.{name}")`. Each module calls `log = get_logger(__name__.rsplit(".", 1)[-1])`.
+- `get_logger(name) -> logging.Logger` returns `logging.getLogger(f"objresolution.{name}")`. Each module calls `log = get_logger(__name__.rsplit(".", 1)[-1])`.
 - `stage_timer(log, stage)` is a context manager:
   - logs INFO `"<stage> started"`, then `"<stage> finished in X.Xs"`;
   - on an exception, calls `log.exception("<stage> failed after X.Xs")` and re-raises;
@@ -331,7 +331,7 @@ Keep pages as functions in `app.py` (`operating_picture()`, `review_queue()`). S
 **App:**
 
 - `app.py` calls `logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"), format=<same>, stream=sys.stdout, force=True)`; `force` is safe in the app process.
-- The logger is named `obj_resolution.app`.
+- The logger is named `objresolution.app`.
 - `app.yaml` gets `LOG_LEVEL: INFO`.
 
 **Levels.** Log only useful events, never per-row:
@@ -387,8 +387,8 @@ Tests live in `tests/unit/` and run with `uv run pytest`. Each feature creates a
 
 | F   | Test                                 | Asserts                                                                                               |
 | --- | ------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| F1  | `test_configure_logging_idempotent`  | Two calls → exactly one handler on `obj_resolution`; `propagate is False`                             |
-| F1  | `test_log_format_iso_utc`            | Formatted record matches `^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ (INFO\|DEBUG…) obj_resolution\.x: msg$`    |
+| F1  | `test_configure_logging_idempotent`  | Two calls → exactly one handler on `objresolution`; `propagate is False`                              |
+| F1  | `test_log_format_iso_utc`            | Formatted record matches `^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ (INFO\|DEBUG…) objresolution\.x: msg$`     |
 | F1  | `test_stage_timer_logs_and_reraises` | `caplog` holds "started" and "finished"; on an exception, ERROR "failed" and the exception propagates |
 
 ### `test_app_helpers.py` (new; imports `helpers` and `icons` from `app/`)
@@ -453,7 +453,7 @@ Tests live in `tests/unit/` and run with `uv run pytest`. Each feature creates a
 **Needs** — · **Estimate** Low / M · **Design** §5.5 · **Tests** `test_log.py` · **Acceptance** 7
 
 - [ ] F1.1 Spec:
-  - `AGENTS.md` › Decisions already made: add "Logging: stdlib `logging` to stdout (named `obj_resolution` logger); `print` only for user-facing notebook output".
+  - `AGENTS.md` › Decisions already made: add "Logging: stdlib `logging` to stdout (named `objresolution` logger); `print` only for user-facing notebook output".
   - `02-architecture.md`: add one paragraph on logging.
 - [ ] F1.2 Write the tests (failing).
 - [ ] F1.3 `notebooks/pipeline/log.py`.

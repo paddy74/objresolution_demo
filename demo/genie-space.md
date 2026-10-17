@@ -1,6 +1,6 @@
 # Genie space: instructions and example SQL
 
-This file is the source of the Genie space: section 15 of `notebooks/generate_data.py` (`sync_space` in `notebooks/pipeline/genie.py`) creates or updates the space from it (the instructions block, one example SQL per `###` heading, sample questions 1, 5 and 2, and every table the examples query). Edit here and re-run that cell; a section without a `sql` block fails the cell. All tables are in `workspace.obj_resolution_demo` (the cell swaps in the current catalog). All data is synthetic. Hide `true_object_id` and `dup_of` in the Genie UI once after the space is created; updates keep that, and none of these queries use them.
+This file is the source of the Genie space: section 15 of `notebooks/generate_data.py` (`sync_space` in `notebooks/pipeline/genie.py`) creates or updates the space from it (the instructions block, one example SQL per `###` heading, sample questions 1, 5 and 2, and every table the examples query). Edit here and re-run that cell; a section without a `sql` block fails the cell. All tables are in `workspace.objresolution_demo` (the cell swaps in the current catalog). All data is synthetic. Hide `true_object_id` and `dup_of` in the Genie UI once after the space is created; updates keep that, and none of these queries use them.
 
 ## Space instructions
 
@@ -32,7 +32,7 @@ Reported types Facility, Ground Vehicle and Vehicle are generic (weak); NULL is 
 SELECT decision,
        COUNT(*) AS observations,
        ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 1) AS pct
-FROM workspace.obj_resolution_demo.silver_model_decisions
+FROM workspace.objresolution_demo.silver_model_decisions
 GROUP BY decision
 ORDER BY decision;
 ```
@@ -40,7 +40,7 @@ ORDER BY decision;
 ### 2. How many observations are awaiting analyst review?
 ```sql
 SELECT COUNT(*) AS awaiting_review
-FROM workspace.obj_resolution_demo.review_queue
+FROM workspace.objresolution_demo.review_queue
 WHERE analyst_decision IS NULL;
 ```
 
@@ -48,7 +48,7 @@ WHERE analyst_decision IS NULL;
 ```sql
 SELECT obs_id, candidate_object_id, candidate_type, match_likelihood, runner_up_object_id,
        runner_up_likelihood, dist_m, producer, sensor, likelihood
-FROM workspace.obj_resolution_demo.review_queue
+FROM workspace.objresolution_demo.review_queue
 WHERE analyst_decision IS NULL
 ORDER BY match_prob DESC
 LIMIT 10;
@@ -58,7 +58,7 @@ LIMIT 10;
 ```sql
 SELECT obs_id, candidate_object_id, match_prob, runner_up_object_id, runner_up_prob,
        ROUND(match_prob - runner_up_prob, 3) AS gap
-FROM workspace.obj_resolution_demo.review_queue
+FROM workspace.objresolution_demo.review_queue
 WHERE runner_up_prob IS NOT NULL
   AND match_prob - runner_up_prob <= 0.2
 ORDER BY gap ASC;
@@ -68,9 +68,9 @@ ORDER BY gap ASC;
 Counts objects with at least one AUTO-associated observation. REVIEW observations are still pending, so they are not counted.
 ```sql
 SELECT COUNT(DISTINCT o.object_id) AS unique_objects
-FROM workspace.obj_resolution_demo.silver_model_decisions d
-JOIN workspace.obj_resolution_demo.bronze_observations b ON b.obs_id = d.obs_id
-JOIN workspace.obj_resolution_demo.oms_objects o ON o.object_id = d.matched_object_id
+FROM workspace.objresolution_demo.silver_model_decisions d
+JOIN workspace.objresolution_demo.bronze_observations b ON b.obs_id = d.obs_id
+JOIN workspace.objresolution_demo.oms_objects o ON o.object_id = d.matched_object_id
 WHERE d.decision = 'AUTO'
   AND o.object_type = 'Armored Fighting Vehicle'
   AND b.obs_time >= current_timestamp() - INTERVAL 72 HOURS;
@@ -80,7 +80,7 @@ Note: observation times are stamped relative to the moment the notebook ran. If 
 ### 6. How many objects are there by type and status?
 ```sql
 SELECT object_type, status, COUNT(*) AS objects
-FROM workspace.obj_resolution_demo.oms_objects
+FROM workspace.objresolution_demo.oms_objects
 GROUP BY object_type, status
 ORDER BY object_type, status;
 ```
@@ -89,13 +89,13 @@ ORDER BY object_type, status;
 ```sql
 SELECT COUNT(*) AS nominations,
        SUM(obs_count) AS observations_recovered
-FROM workspace.obj_resolution_demo.gold_nominations;
+FROM workspace.objresolution_demo.gold_nominations;
 ```
 
 ### 8. Which nominated objects have the most supporting observations?
 ```sql
 SELECT concat(object_type, ' ', designator) AS object_name, obs_count, lat, lon
-FROM workspace.obj_resolution_demo.gold_nominations
+FROM workspace.objresolution_demo.gold_nominations
 ORDER BY obs_count DESC, object_id
 LIMIT 10;
 ```
@@ -106,8 +106,8 @@ SELECT b.producer,
        COUNT(*) AS observations,
        SUM(CASE WHEN d.decision = 'AUTO' THEN 1 ELSE 0 END) AS auto_associated,
        ROUND(100.0 * SUM(CASE WHEN d.decision = 'AUTO' THEN 1 ELSE 0 END) / COUNT(*), 1) AS auto_pct
-FROM workspace.obj_resolution_demo.silver_model_decisions d
-JOIN workspace.obj_resolution_demo.bronze_observations b ON b.obs_id = d.obs_id
+FROM workspace.objresolution_demo.silver_model_decisions d
+JOIN workspace.objresolution_demo.bronze_observations b ON b.obs_id = d.obs_id
 GROUP BY b.producer
 ORDER BY b.producer;
 ```
@@ -120,8 +120,8 @@ SELECT CASE WHEN b.reported_type IS NULL THEN 'missing type'
             ELSE 'specific type' END AS type_quality,
        d.decision,
        COUNT(*) AS observations
-FROM workspace.obj_resolution_demo.silver_model_decisions d
-JOIN workspace.obj_resolution_demo.bronze_observations b ON b.obs_id = d.obs_id
+FROM workspace.objresolution_demo.silver_model_decisions d
+JOIN workspace.objresolution_demo.bronze_observations b ON b.obs_id = d.obs_id
 GROUP BY 1, 2
 ORDER BY 1, 2;
 ```
@@ -130,7 +130,7 @@ ORDER BY 1, 2;
 Replace the ID with hero A or B from the cheat card (A: `OBJ-01289`, B: `OBJ-00443`).
 ```sql
 SELECT object_id, hero, dossier_text, cited_ids, generated_by
-FROM workspace.obj_resolution_demo.object_dossiers
+FROM workspace.objresolution_demo.object_dossiers
 WHERE object_id = 'OBJ-01289';
 ```
 
@@ -141,7 +141,7 @@ SELECT source_file,
        COUNT(*) AS rows_landed,
        MIN(ingested_at) AS first_ingested,
        MAX(ingested_at) AS last_ingested
-FROM workspace.obj_resolution_demo.bronze_observations
+FROM workspace.objresolution_demo.bronze_observations
 GROUP BY source_file
 ORDER BY source_file;
 ```
@@ -149,7 +149,7 @@ ORDER BY source_file;
 ### 13. Which sensors feed the review queue?
 ```sql
 SELECT sensor, COUNT(*) AS review_items, ROUND(AVG(match_prob), 3) AS avg_match_prob
-FROM workspace.obj_resolution_demo.review_queue
+FROM workspace.objresolution_demo.review_queue
 GROUP BY sensor
 ORDER BY review_items DESC;
 ```
@@ -157,7 +157,7 @@ ORDER BY review_items DESC;
 ### 14. Which objects have the most linked observations?
 ```sql
 SELECT concat(object_type, ' ', designator) AS object_name, source, status, obs_count
-FROM workspace.obj_resolution_demo.oms_objects
+FROM workspace.objresolution_demo.oms_objects
 ORDER BY obs_count DESC, object_id
 LIMIT 10;
 ```
@@ -166,7 +166,7 @@ LIMIT 10;
 `review_decisions` is empty until hero B's approval cell has run.
 ```sql
 SELECT decision, confidence, COUNT(*) AS decisions
-FROM workspace.obj_resolution_demo.review_decisions
+FROM workspace.objresolution_demo.review_decisions
 GROUP BY decision, confidence;
 ```
 
@@ -174,7 +174,7 @@ GROUP BY decision, confidence;
 Pairs where the model gave both records nearly the same score for at least two observations. A possible duplicate, not a confirmed one.
 ```sql
 SELECT object_name_1, object_name_2, records_apart_m, close_call_observations, avg_score_gap
-FROM workspace.obj_resolution_demo.possible_duplicate_objects
+FROM workspace.objresolution_demo.possible_duplicate_objects
 ORDER BY close_call_observations DESC, avg_score_gap ASC;
 ```
 

@@ -4,11 +4,11 @@ A condensed, slide-free version of `docs/plan/05-demo-script.md` for a 10-minute
 
 ## How to read this script
 
-| Tag        | Meaning                                    |
-| ---------- | ------------------------------------------ |
-| **[SAY]**  | Spoken aloud, close to word for word       |
-| **[DO]**   | An action on screen                        |
-| **[NOTE]** | For you only. Context, numbers, recovery   |
+| Tag        | Meaning                                  |
+| ---------- | ---------------------------------------- |
+| **[SAY]**  | Spoken aloud, close to word for word     |
+| **[DO]**   | An action on screen                      |
+| **[NOTE]** | For you only. Context, numbers, recovery |
 
 ## Resolution workflow (from new observation to resolution)
 
@@ -39,7 +39,7 @@ flowchart TD
 ## Before you start (5 minutes, not part of the 10)
 
 - [ ] Re-run `notebooks/generate_data.py` within the hour. This resets the review queue and keeps the "last 72 hours" counts fresh.
-- [ ] Tabs open in this order: **(1)** Catalog Explorer on `workspace.obj_resolution_demo`, **(2)** Genie space, **(3)** Databricks App, **(4)** pipeline notebook at the cheat card (backup).
+- [ ] Tabs open in this order: **(1)** Catalog Explorer on `workspace.objresolution_demo`, **(2)** Genie space, **(3)** Databricks App, **(4)** pipeline notebook at the cheat card (backup).
 - [ ] The SQL warehouse is running, and the app and Genie have each been loaded once.
 - [ ] In the app, find the row marked **Demo case B**. The queue shows only the top 50 of 137 items, so if B is missing, plan to use the notebook form in section 10b instead.
 - [ ] Hero IDs are on a sticky note: A `OBJ-01289`, B `OBJ-00443` (look-alike `OBJ-T011`), C `NOM-57872318ae`.
@@ -116,9 +116,9 @@ This is a proof of concept. The data is synthetic, the sources are mocked, and t
 
 ## If you're running long
 
-| At     | Cut                                                                   |
-| ------ | --------------------------------------------------------------------- |
-| 2:30   | Skip the sample-data scroll; say the lineage sentence over the table list |
-| 4:30   | Drop the second Genie question; say "128 new objects, 335 recovered"  |
-| 7:30   | Drop the 72-hour Genie question entirely                              |
-| Never  | Drop the analyst confirm. It closes the loop                          |
+| At    | Cut                                                                       |
+| ----- | ------------------------------------------------------------------------- |
+| 2:30  | Skip the sample-data scroll; say the lineage sentence over the table list |
+| 4:30  | Drop the second Genie question; say "128 new objects, 335 recovered"      |
+| 7:30  | Drop the 72-hour Genie question entirely                                  |
+| Never | Drop the analyst confirm. It closes the loop                              |

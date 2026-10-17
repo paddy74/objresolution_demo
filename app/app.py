@@ -14,7 +14,7 @@ Deploy (Databricks Apps, Streamlit):
 2. Grant the app's service principal access to the demo schema (run as a catalog owner)::
 
        GRANT USE CATALOG ON CATALOG workspace TO `<app service principal>`;
-       GRANT USE SCHEMA, SELECT, MODIFY ON SCHEMA workspace.obj_resolution_demo TO `<app service principal>`;
+       GRANT USE SCHEMA, SELECT, MODIFY ON SCHEMA workspace.objresolution_demo TO `<app service principal>`;
 
 3. Run ``notebooks/generate_data.py`` first so the tables and views exist.
 """
@@ -30,10 +30,10 @@ from databricks import sql
 from databricks.sdk.core import Config
 from streamlit_folium import st_folium
 
-SCHEMA = os.getenv("OBJ_RESOLUTION_SCHEMA", "workspace.obj_resolution_demo")
+SCHEMA = os.getenv("OBJRESOLUTION_SCHEMA", "workspace.objresolution_demo")
 if not re.fullmatch(r"[A-Za-z0-9_]+\.[A-Za-z0-9_]+", SCHEMA):
     raise ValueError(
-        f"OBJ_RESOLUTION_SCHEMA must look like catalog.schema, got {SCHEMA!r}"
+        f"OBJRESOLUTION_SCHEMA must look like catalog.schema, got {SCHEMA!r}"
     )
 WAREHOUSE_ID = os.getenv("DATABRICKS_WAREHOUSE_ID")
 if not WAREHOUSE_ID:

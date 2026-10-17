@@ -61,7 +61,7 @@ def test_hav_sql_distances() -> None:
 
 def test_parse_genie_examples() -> None:
     md = Config(catalog="test").repo_root / "demo" / "genie-space.md"
-    instructions, examples = parse_genie_md(md.read_text(), "test.obj_resolution_demo")
+    instructions, examples = parse_genie_md(md.read_text(), "test.objresolution_demo")
     assert "oms_objects" in instructions
     assert [n for n, _, _ in examples] == list(range(1, 17))
     assert all("workspace." not in sql for _, _, sql in examples)

@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
 
-SCHEMA = "obj_resolution_demo"
+SCHEMA = "objresolution_demo"
 
 
 @dataclass(frozen=True)

@@ -6,7 +6,7 @@
   "python.languageServer": "Pylance",
   "basedpyright.disableLanguageServices": true,
   "python.defaultInterpreterPath": "python",
-  "python.analysis.extraPaths": ["obj_resolution"],
+  "python.analysis.extraPaths": ["objresolution"],
   "autoDocstring.docstringFormat": "sphinx",
   "files.exclude": {
     "**/__pycache__": true,

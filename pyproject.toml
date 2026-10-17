@@ -1,5 +1,5 @@
 # Not a published package: the build backend exists only so Databricks can
-# `%pip install -e` the repo and notebooks/app can `import obj_resolution` shared helpers.
+# `%pip install -e` the repo and notebooks/app can `import objresolution` shared helpers.
 
 [build-system]
 requires = ["hatchling"]
@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["obj_resolution"]
+packages = ["objresolution"]
 
 [dependency-groups]
 # Local development only (not installed on Databricks).
@@ -37,7 +37,7 @@ dev = [
 ]
 
 [tool.basedpyright]
-include = ["obj_resolution", "tests"]
+include = ["objresolution", "tests"]
 typeCheckingMode = "standard"
 venvPath = "."
 venv = ".venv"

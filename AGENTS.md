@@ -28,7 +28,7 @@ You are a senior data and AI engineer helping build a Databricks prototype for a
 ## Code Standards & Conventions
 
 - **Study neighboring files first**: patterns emerge from existing code.
-- **Use precise types** in `obj_resolution/`; notebooks may rely on Databricks globals (`spark`, `dbutils`, `display`).
+- **Use precise types** in `objresolution/`; notebooks may rely on Databricks globals (`spark`, `dbutils`, `display`).
 - **Fail fast with clear errors**: descriptive failures beat silent wrong numbers in a live demo.
 - **Edit over create**: prefer modifying existing notebooks and modules.
 - **Document**: docstrings on functions; a markdown cell at the top of each notebook saying what it does.
@@ -59,18 +59,18 @@ This repository is the build workspace for a demo of **observation-to-object res
 ### Layout
 
 ```
-obj_resolution/  shared helpers (only if notebooks and app both need them)
+objresolution/  shared helpers (only if notebooks and app both need them)
 notebooks/       feasibility checks (run in Databricks only) and pipeline notebooks (Databricks .py source format)
   pipeline/      one module per pipeline stage, imported by generate_data.py; each stage reads its inputs from tables
 app/             Databricks App (Layer 4)
 data/ontology    CCO ontology file
 docs/plan/       planning documents (see docs/plan/README.md)
 demo/            Genie example queries and space instructions
-tests/unit/      tests for obj_resolution/ and notebooks/pipeline/ helpers
+tests/unit/      tests for objresolution/ and notebooks/pipeline/ helpers
 ```
 
 ### Testing Instructions
 
 - Framework: [pytest](https://docs.pytest.org/); tests live in `tests/unit/`.
 - Run locally with `uv run pytest`, `uv run ruff check` and `uv run ruff format`.
-- Test pure-Python helpers in `obj_resolution/` and `notebooks/pipeline/`; notebooks are validated by running them on Databricks.
+- Test pure-Python helpers in `objresolution/` and `notebooks/pipeline/`; notebooks are validated by running them on Databricks.

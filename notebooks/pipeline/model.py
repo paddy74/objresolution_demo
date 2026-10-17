@@ -24,7 +24,7 @@ FEATURES = [
     "dist_gap_m",
     "days_since_last_seen",
 ]
-MODEL_NAME = "obj_resolution_match_model"
+MODEL_NAME = "objresolution_match_model"
 MODEL_ALIAS = "champion"
 # MLflow 3 saves sklearn models with skops, which refuses classes it doesn't know; this is the
 # only one HistGradientBoostingClassifier needs (feasibility_tests.py section 5).
@@ -117,7 +117,7 @@ def train(
     print("HELD-OUT (synthetic, grouped by observation):", metrics)
 
     signature = infer_signature(X.iloc[:5], clf.predict(X.iloc[:5]))
-    with mlflow.start_run(run_name="obj_resolution_match_model") as run:
+    with mlflow.start_run(run_name="objresolution_match_model") as run:
         mlflow.log_params(
             {"model": "HistGradientBoostingClassifier", "features": ",".join(FEATURES)}
         )

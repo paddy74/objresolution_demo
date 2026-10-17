@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from .config import Config
 
 API = "/api/2.0/genie/spaces"
-DOC_SCHEMA = "workspace.obj_resolution_demo"  # schema written in genie-space.md
+DOC_SCHEMA = "workspace.objresolution_demo"  # schema written in genie-space.md
 
 
 def genie_id(*parts: str) -> str:
