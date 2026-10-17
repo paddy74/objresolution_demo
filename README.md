@@ -68,3 +68,7 @@ The design prioritizes **reliability and explainability over sophistication**, s
 - **Ontology-aware matching**: CCO class hierarchy drives type compatibility, so generic and specific reports can be correlated.
 - **Probabilities, not rules**: a trained model with thresholds and a human review queue, so reliability questions have a measurable answer.
 - **Write-back**: resolved objects return to the system of record, so the platform enriches existing systems instead of becoming another silo.
+
+## License
+
+Distributed under the [Apache License v2.0](https://www.apache.org/licenses/LICENSE-2.0). See [LICENSE](LICENSE) for details.
